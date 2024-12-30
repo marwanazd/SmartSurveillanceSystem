@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raspberry Pi Camera Stream with Drawings</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        #videoContainer {
+            position: relative;
+            display: inline-block;
+        }
+
+        #drawingCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: all; /* Capture all pointer events */
+        }
+
+        .controls {
+            margin-top: 20px;
+        }
+
+        #zonesList {
+            margin-top: 20px;
+        }
+
+        .drawing-list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .drawing-list-item button {
+            margin-left: 10px;
+        }
+
+        .btn-group label {
+            cursor: pointer;
+        }
+
+        .row-spacing {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body class="container mt-4">
+    <div class="row">
+        <div class="col-auto">
+            <button id="Return" class="btn btn-primary">Return Home</button>
+        </div>
+        <div class="col">
+            <h1 class="text-center">Draw and Get Geographic Coordinates on the Video</h1>
+        </div>
+    </div>
+
+    <div class="row row-spacing">
+        <div class="col-12">
+            <div id="videoContainer" class="mb-4">
+                <img id="videoFeed" src="{{ url_for('video_feed') }}" alt="Video Stream" class="img-fluid" draggable="false">
+                <canvas id="drawingCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="row row-spacing">
+        <div class="col-md-6">
+            <div class="controls d-flex justify-content-between align-items-center">
+                <div class="btn-group" role="group" aria-label="Drawing Modes">
+                    <input type="radio" class="btn-check" name="drawingMode" id="rectangleMode" value="rectangle" checked>
+                    <label class="btn btn-outline-primary" for="rectangleMode" data-bs-toggle="tooltip" data-bs-placement="top" title="Draw rectangles">
+                        <i class="bi bi-square"></i> Rectangle
+                    </label>
+                    <input type="radio" class="btn-check" name="drawingMode" id="lineMode" value="line">
+                    <label class="btn btn-outline-primary" for="lineMode" data-bs-toggle="tooltip" data-bs-placement="top" title="Draw lines">
+                        <i class="bi bi-slash"></i> Line
+                    </label>
+                </div>        
+                <div>
+                    <button id="clearDrawing" class="btn btn-secondary">Clear Drawing</button>
+                    <button id="confirmDrawing" class="btn btn-primary">Confirm Drawing</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4th Row for Saved Drawings -->
+    <div class="row row-spacing">
+        <div class="col-md-12">
+            <div id="zonesList" class="mt-4">
+                <h3>Saved Drawings</h3>
+                <ul class="list-group">
+                    <!-- Drawings will be dynamically added here -->
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isDrawing = false;
+        let startX, startY, endX, endY, width, height;
+        let drawingMode = 'rectangle'; // Default mode
+
+        const canvas = document.getElementById('drawingCanvas');
+        const video = document.getElementById('videoFeed');
+        const ctx = canvas.getContext('2d');
+
+        // Get drawing mode
+        document.querySelectorAll('input[name="drawingMode"]').forEach(input => {
+            input.addEventListener('change', (e) => {
+                drawingMode = e.target.value;
+                ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas when switching modes
+            });
+        });
+
+        // Synchronize canvas size with video
+        function resizeCanvas() {
+            canvas.width = video.clientWidth;
+            canvas.height = video.clientHeight;
+            canvas.style.width = `${video.clientWidth}px`;
+            canvas.style.height = `${video.clientHeight}px`;
+        }
+
+        video.onload = resizeCanvas;
+        window.onresize = resizeCanvas;
+
+        // Mouse event handlers
+        canvas.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            startX = e.clientX - rect.left;
+            startY = e.clientY - rect.top;
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const currentX = e.clientX - rect.left;
+            const currentY = e.clientY - rect.top;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#00FF00';
+            ctx.lineWidth = 2;
+
+            if (drawingMode === 'rectangle') {
+                width = currentX - startX;
+                height = currentY - startY;
+                ctx.strokeRect(startX, startY, width, height);
+            } else if (drawingMode === 'line') {
+                endX = currentX;
+                endY = currentY;
+                ctx.beginPath();
+                ctx.moveTo(startX, startY);
+                ctx.lineTo(endX, endY);
+                ctx.stroke();
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isDrawing = false;
+        });
+
+        // Redirect to the home page
+        document.getElementById('Return').addEventListener('click', () => {
+            window.location.href = '/';
+        });
+
+        // Clear drawing
+        document.getElementById('clearDrawing').addEventListener('click', () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        });
+
+        // Confirm drawing
+        document.getElementById('confirmDrawing').addEventListener('click', async () => {
+            if (drawingMode === 'rectangle' && width && height) {
+                const rectangle = {
+                    type: 'rectangle',
+                    a: Math.round(startX),
+                    b: Math.round(startY),
+                    c: Math.round(width),
+                    d: Math.round(height)
+                };
+
+                await fetch('/add_drawing', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(rectangle)
+                });
+            } else if (drawingMode === 'line' && endX && endY) {
+                const line = {
+                    type: 'line',
+                    a: Math.round(startX),
+                    b: Math.round(startY),
+                    c: Math.round(endX),
+                    d: Math.round(endY)
+                };
+
+                await fetch('/add_drawing', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(line)
+                });
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            loadDrawings();
+        });
+
+        // Load and display drawings
+        async function loadDrawings() {
+            const response = await fetch('/get_drawings');
+            const drawings = await response.json();
+            const zonesList = document.querySelector('.list-group');
+            zonesList.innerHTML = '';
+
+            drawings.forEach((drawing) => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item d-flex justify-content-between align-items-center drawing-list-item';
+                
+                if (drawing.type === 'rectangle') {
+                    li.textContent = `Rectangle ${drawing.id}: (${drawing.a}, ${drawing.b}) ${drawing.c - drawing.a}x${drawing.d - drawing.b}`;
+                } else if (drawing.type === 'line') {
+                    li.textContent = `Line ${drawing.id}: Start (${drawing.a}, ${drawing.b}) -> End (${drawing.c}, ${drawing.d})`;
+                }
+
+                const removeButton = document.createElement('button');
+                removeButton.className = 'btn btn-danger btn-sm';
+                removeButton.textContent = 'Remove';
+                removeButton.onclick = async () => {
+                    await fetch('/remove_drawing', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ id: drawing.id })
+                    });
+                    loadDrawings();
+                };
+
+                li.appendChild(removeButton);
+                zonesList.appendChild(li);
+            });
+        }
+
+        // Initial load of drawings
+        loadDrawings();
+    </script>
+</body>
+</html>

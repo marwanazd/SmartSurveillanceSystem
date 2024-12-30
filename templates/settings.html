@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Settings{% endblock %}
+
+{% block content %}
+<h1 class="text-center my-4">{{ title }}</h1>
+
+<div class="container">
+    <form method="post" action="/settings">
+        <div class="row mb-3">
+            <label for="ObjectDetection" class="col-sm-3 col-form-label">Object Detection Parametrs</label>
+            <div class="col-sm-9">
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="AllowObjectDetection" name="AllowObjectDetection">
+                    <label class="form-check-label" for="AllowObjectDetection">Object Detection</label>
+                </div>
+                <input type="text" class="form-control" id="model_name_od" name="Model Name" placeholder="Enter value for Model Name">
+                <input type="text" class="form-control" id="db_name_od" name="Data Base Name" placeholder="Enter value for Data Base Name">
+            </div>
+        </div>
+        
+        <div class="row mb-3">
+            <label for="FaceRecognation" class="col-sm-3 col-form-label">Face Recognation</label>
+            <div class="col-sm-9">
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="AllowFaceRecognation" name="AllowFaceRecognation">
+                    <label class="form-check-label" for="AllowFaceRecognation">Face Recognation</label>
+                </div>
+                <input type="text" class="form-control" id="model_name_fc" name="Model Name" placeholder="Enter value for Model Name">
+                <input type="text" class="form-control" id="db_name_fc" name="Data Base Name" placeholder="Enter value for Data Base Name">
+            </div>
+        </div>
+        
+        <div class="row mb-3">
+            <label for="DistanceMonitoring" class="col-sm-3 col-form-label">Distance Monitoring</label>
+            <div class="col-sm-9">
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="AllowDistanceMonitoring" name="AllowDistanceMonitoring">
+                    <label class="form-check-label" for="AllowDistanceMonitoring">Distance Monitoring</label>
+                </div>
+                <input type="text" class="form-control" id="model_name_dm" name="Model Name" placeholder="Enter value for Model Name">
+                <input type="text" class="form-control" id="db_name_dm" name="Data Base Name" placeholder="Enter value for Data Base Name">
+                <button class="btn btn-primary" id="line_dm">Pick Points</button>
+                <input type="text" class="form-control" id="real_distance_dm" name="Data Real Distance" placeholder="Enter value of real world distance between the two points">
+
+            </div>
+        </div>
+        
+        <div class="row mb-3">
+            <label for="AttendanceSystem" class="col-sm-3 col-form-label">Attendance System</label>
+            <div class="col-sm-9">
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="AllowAttendanceSystem" name="AllowAttendanceSystem">
+                    <label class="form-check-label" for="AllowAttendanceSystem">Attendance System</label>
+                </div>
+                <input type="number" class="form-control" id="AttendanceSystemUPLOADFOLDER" name="AttendanceSystemUPLOADFOLDER" min="0" max="100" step="1" placeholder="Enter upload floder">
+                <button class="btn btn-primary" id="line_dm">Drow Line</button>
+            </div>
+        </div>
+        
+        <div class="text-center mt-4">
+            <button type="submit" class="btn btn-primary">Save Settings</button>
+        </div>
+    </form>
+</div>
+
+{% block scripts %}
+<script>
+    // Add any necessary JavaScript, such as dynamic interaction or form validation.
+    document.querySelector('button[type="submit"]').addEventListener('click', function (event) {
+        event.preventDefault(); // Prevent default for demo purposes
+        alert('Settings saved successfully!');
+    });
+
+    // Redirect to the home page
+    document.getElementById('line_dm').addEventListener('click', () => {
+        window.location.href = '/';
+        });
+</script>
+{% endblock %}
+{% endblock %}

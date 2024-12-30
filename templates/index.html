@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+<div class="container my-5">
+    <!-- First row with two columns -->
+    <div class="row">
+        <div class="col-md-6">
+            <!-- Column 1 with two rows -->
+            <div class="row">
+                <!-- Camera Feed (Row 1) -->
+                <div class="col-12 mb-3">
+                    <div class="card">
+                        <!-- Card Header with Camera Title -->
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-camera me-2"></i>Camera 1</span>
+                            <div class="dropdown">
+                                <button class="btn btn-link p-0" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="/camera/toggle">Turn Camera On/Off</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0)" onclick="toggleFullScreen()">Full Screen</a></li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Camera Feed -->
+                        <div class="card-body p-0">
+                            <div class="camera-feed">
+                                <div class="content">
+                                    <img src="{{ url_for('video_feed') }}" 
+                                         id="video-feed-1" 
+                                         class="img-fluid w-100" 
+                                         alt="Live feed 1" 
+                                         style="object-fit: contain; width: 100%; height: 100%; border-radius: 0 0 4px 4px;" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Metadata (Row 2) -->
+                <div class="col-12 mb-3">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="bi bi-info-circle me-2"></i>Camera Metadata
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    FPS
+                                    <span id="camera-fps">{{ metadata.fps }}</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Time
+                                    <span id="camera-time">{{ metadata.time }}</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Resolution
+                                    <span id="camera-resolution">{{ metadata.resolution[0] }}x{{ metadata.resolution[1] }}</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <!-- Column 2 with three rows of cards -->
+            <!-- Data Column -->
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="bi bi-people me-2"></i>FabLab Statistics
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Total People Detected
+                                    <span id="total-detected">0</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Known Visitors/Guests
+                                    <span id="known-visitors">0</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Unknown Visitors/Guests
+                                    <span id="unknown-visitors">0</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    People Exited FabLab
+                                    <span id="people-exited">0</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    People Still in FabLab
+                                    <span id="people-in-lab">0</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Events Card -->
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="bi bi-calendar-event me-2"></i>Events
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title">Total Events Recorded</h5>
+                            <p class="card-text"><span id="total-events">0</span> events detected by the computer vision system.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Storage Card -->
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="bi bi-hdd me-2"></i>Storage
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title">Data Storage Usage</h5>
+                            <p class="card-text">
+                                Images: <span id="storage-images">0</span> MB<br>
+                                SQL Databases: <span id="storage-sql">0</span> MB<br>
+                                Total: <span id="storage-total">0</span> MB
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Line separator between rows -->
+    <hr class="my-4">
+
+    <!-- Second row - Add Table for Events -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <h3>All Events</h3>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th scope="col">Event ID</th>
+                        <th scope="col">Event Type</th>
+                        <th scope="col">Name/Label</th>
+                        <th scope="col">Timestamp</th>
+                        <th scope="col">Image</th>
+                    </tr>
+                </thead>
+                <tbody id="events-list">
+                    <!-- Events will be inserted here by JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+{% block scripts %}
+<script>
+    // Function to fetch FabLab statistics and update the page
+    function fetchFabLabStatistics() {
+        fetch('/api/fabLab_statistics')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('total-detected').textContent = data.statistics.total_people_detected;
+                document.getElementById('known-visitors').textContent = data.statistics.known_visitors;
+                document.getElementById('unknown-visitors').textContent = data.statistics.unknown_visitors;
+                document.getElementById('people-exited').textContent = data.statistics.people_exited;
+                document.getElementById('people-in-lab').textContent = data.statistics.people_in_fablab;
+            })
+            .catch(error => console.error('Error fetching FabLab statistics:', error));
+    }
+
+    // Function to fetch event data and update the table
+    function fetchEvents() {
+        fetch('/api/evants')
+            .then(response => response.json())
+            .then(data => {
+                const eventsList = document.getElementById('events-list');
+                eventsList.innerHTML = '';  // Clear the current list
+
+                data.events.forEach(event => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${event.id}</td>
+                        <td>${event.eventtype}</td>
+                        <td>${event.name}</td>
+                        <td>${new Date(event.timestamp).toLocaleString()}</td>
+                        <td>
+                            ${event.img ? `<img src="data:image/jpeg;base64,${event.img}" alt="Event Image" class="img-thumbnail" style="max-width: 100px;">` : 'No Image'}
+                        </td>
+                    `;
+                    eventsList.appendChild(row);
+                });
+
+                // Update the total events count
+                document.getElementById('total-events').textContent = data.events.length;
+            })
+            .catch(error => console.error('Error fetching events:', error));
+    }
+    // Function to fetch storage data and update the page
+    function fetchStorage() {
+        fetch('/api/storage')
+            .then(response => response.json())
+            .then(data => {
+                // Update the storage values on the page
+                document.getElementById('storage-images').textContent = data.faces_dataset;
+                document.getElementById('storage-sql').textContent = data.instance;
+                document.getElementById('storage-total').textContent = data.total_size;
+            })
+            .catch(error => console.error('Error fetching storage data:', error));
+    }
+
+    // Fetch statistics and events when the page loads
+    window.onload = function() {
+        fetchFabLabStatistics();
+        fetchEvents();
+        fetchStorage();  // Fetch the storage data on page load
+        setInterval(fetchFabLabStatistics, 10000);  // Update statistics every 10 seconds
+        setInterval(fetchEvents, 30000);  // Update events every 30 seconds
+        setInterval(fetchStorage, 60000);  // Update storage data every 60 seconds
+    };
+</script>
+{% endblock %}
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}About{% endblock %}
+
+{% block content %}
+<h1>About</h1>
+
+<!-- Section 1: How to Use the System -->
+<section class="mb-5">
+    <h2>How to Use the System</h2>
+    <p>The Smart Surveillance System is designed to provide an easy and efficient way to monitor your premises. Here is a step-by-step guide to using the system:</p>
+
+    <ol>
+        <li><strong>Access the Dashboard:</strong> Log in to your account and navigate to the dashboard to view all connected cameras in real-time.</li>
+        <li><strong>Control Cameras:</strong> Use the controls to turn cameras on/off, adjust brightness, and change resolution.</li>
+        <li><strong>Live Streaming:</strong> Click on any camera feed to view the live stream in fullscreen mode.</li>
+        <li><strong>Set Motion Detection:</strong> Enable motion detection for specific cameras to get alerts for unusual activities.</li>
+        <li><strong>Recording Schedule:</strong> Schedule recording times for your cameras to optimize storage and focus on critical periods.</li>
+        <li><strong>Logs and Alerts:</strong> Access the logs to review activity history and set up alerts for specific events.</li>
+        <li><strong>Manage Users:</strong> Add or remove users who can access the system and define their permissions.</li>
+    </ol>
+
+    <p>For a detailed walkthrough of features, visit the <a href="/dashboard">dashboard</a> or check out the <a href="/settings">settings</a> page to customize the system to your preferences.</p>
+</section>
+
+<!-- Section 2: Developer Info -->
+<section>
+    <h2>Developer Info</h2>
+    <p>The Smart Surveillance System was developed by:</p>
+
+    <ul>
+        <li><strong>Developer Name:</strong> Marwan Azdoud</li>
+        <li><strong>Email:</strong> <a href="mailto:developer@example.com">developer@example.com</a></li>
+        <li><strong>GitHub:</strong> <a href="https://github.com/" target="_blank">https://github.com/</a></li>
+        <li><strong>LinkedIn:</strong> <a href="https://www.linkedin.com/" target="_blank">https://www.linkedin.com/</a></li>
+        <li><strong>Special Thanks:</strong> Acknowledgments to Orange Digital Center Agadir.</li>
+    </ul>
+
+    <p>If you have any questions, suggestions, or bug reports, feel free to reach out to the developer using the contact information above. Your feedback is highly appreciated!</p>
+</section>
+
+<style>
+    section {
+        margin-bottom: 40px;
+    }
+    section h2 {
+        color: #343a40; /* Bootstrap's dark color */
+        border-bottom: 2px solid #6c757d; /* Secondary color for a subtle divider */
+        padding-bottom: 10px;
+    }
+</style>
+
+{% endblock %}

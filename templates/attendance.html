@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1>{{ title }}</h1>
+    
+    <!-- Buttons for Filter and Download -->
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#dateFilterModal">Filter Records</button>
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#downloadModal">Download Records</button>
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addPersonModal">Add Person</button>
+        </div>
+    </div>
+
+    <!-- Attendance Table -->
+    <table class="table table-striped mt-4" id="attendance-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Timestamp</th>
+                <th>Face Image</th>
+            </tr>
+        </thead>
+        <tbody id="attendance-records">
+            <!-- Records will be dynamically populated here -->
+        </tbody>
+    </table>
+
+    <!-- Date Filter Modal -->
+    <div class="modal fade" id="dateFilterModal" tabindex="-1" aria-labelledby="dateFilterModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="dateFilterModalLabel">Select Date Filter</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="timePeriod" class="form-label">Time Period</label>
+                        <select class="form-select" id="timePeriod" onchange="toggleDatePickers()">
+                            <option value="today" selected>Today</option>
+                            <option value="yesterday">Yesterday</option>
+                            <option value="week">This Week</option>
+                            <option value="month">This Month</option>
+                            <option value="all">All</option>
+                            <option value="specific">Specific</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="specific-date-range" style="display:none;">
+                        <label for="startDate" class="form-label">Start Date</label>
+                        <input type="date" class="form-control" id="startDate">
+                        <label for="endDate" class="form-label mt-2">End Date</label>
+                        <input type="date" class="form-control" id="endDate">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal" id="applyFilter">Apply Filter</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Download Modal -->
+    <div class="modal fade" id="downloadModal" tabindex="-1" aria-labelledby="downloadModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="downloadModalLabel">Download Attendance Records</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="downloadTimePeriod" class="form-label">Time Period</label>
+                        <select class="form-select" id="downloadTimePeriod" onchange="toggleDownloadDatePickers()">
+                            <option value="all">All</option>
+                            <option value="today">Today</option>
+                            <option value="yesterday">Yesterday</option>
+                            <option value="week">This Week</option>
+                            <option value="month">This Month</option>
+                            <option value="specific">Specific</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="download-specific-date-range" style="display:none;">
+                        <label for="downloadStartDate" class="form-label">Start Date</label>
+                        <input type="date" class="form-control" id="downloadStartDate">
+                        <label for="downloadEndDate" class="form-label mt-2">End Date</label>
+                        <input type="date" class="form-control" id="downloadEndDate">
+                    </div>
+                    <div class="mb-3">
+                        <label for="fileFormat" class="form-label">File Format</label>
+                        <select class="form-select" id="fileFormat">
+                            <option value="csv">CSV</option>
+                            <option value="xls">XLSX</option>
+                            <option value="json">JSON</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="downloadRecords" data-bs-dismiss="modal">Download</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Person Modal -->
+<div class="modal fade" id="addPersonModal" tabindex="-1" aria-labelledby="addPersonModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addPersonModalLabel">Add Person</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="add-person-form" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="person-name" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="person-name" name="name" required />
+                    </div>
+                    <div class="mb-3">
+                        <label for="person-images" class="form-label">Upload Images</label>
+                        <input type="file" class="form-control" id="person-images" name="images" multiple required />
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Submit</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% block scripts %}
+<script>
+    // Function to toggle specific date range inputs in the filter modal
+    function toggleDatePickers() {
+        const timePeriod = document.getElementById('timePeriod').value;
+        const dateRangeSection = document.getElementById('specific-date-range');
+        if (timePeriod === 'specific') {
+            dateRangeSection.style.display = 'block';
+        } else {
+            dateRangeSection.style.display = 'none';
+        }
+    }
+
+    // Function to toggle specific date range inputs in the download modal
+    function toggleDownloadDatePickers() {
+        const timePeriod = document.getElementById('downloadTimePeriod').value;
+        const downloadDateRangeSection = document.getElementById('download-specific-date-range');
+        if (timePeriod === 'specific') {
+            downloadDateRangeSection.style.display = 'block';
+        } else {
+            downloadDateRangeSection.style.display = 'none';
+        }
+    }
+
+    // Function to fetch attendance data from the API
+    function fetchAttendanceData() {
+        const timePeriod = document.getElementById('timePeriod').value;
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+
+        $.get('/api/attendance', { timePeriod, startDate, endDate }, function(data) {
+            const records = data.records;
+            let tableBody = '';
+            records.forEach(record => {
+                tableBody += `<tr>
+                    <td>${record.id}</td>
+                    <td>${record.name}</td>
+                    <td>${record.timestamp}</td>
+                    <td><img src="data:image/jpeg;base64,${record.face_image}" alt="Face Image" width="100"></td>
+                </tr>`;
+            });
+            document.getElementById('attendance-records').innerHTML = tableBody;
+        });
+    }
+
+    // Update table every 5 seconds
+    setInterval(fetchAttendanceData, 5000);
+
+    // Apply the date filter and reload the attendance table
+    document.getElementById('applyFilter').addEventListener('click', function() {
+        fetchAttendanceData();
+        $('#dateFilterModal').modal('hide');
+    });
+
+    // Handle the download action
+    document.getElementById('downloadRecords').addEventListener('click', function() {
+        const timePeriod = document.getElementById('downloadTimePeriod').value;
+        const startDate = document.getElementById('downloadStartDate').value;
+        const endDate = document.getElementById('downloadEndDate').value;
+        const fileFormat = document.getElementById('fileFormat').value;
+
+        const url = `/api/download?timePeriod=${timePeriod}&startDate=${startDate}&endDate=${endDate}&fileFormat=${fileFormat}`;
+        window.location.href = url;
+        $('#downloadModal').modal('hide');
+    });
+
+    // Initial fetch of attendance records
+    fetchAttendanceData();
+
+    // Handle Add Person form submission
+    document.getElementById("add-person-form").addEventListener("submit", function (e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+
+        fetch("/api/add_person", {
+            method: "POST",
+            body: formData
+        })
+        .then(response => {
+            if (response.ok) {
+                alert("Person added and training started!");
+                location.reload(); // Reload to show updates
+            } else {
+                alert("Error adding person.");
+            }
+        })
+        .catch(error => console.error("Error submitting form:", error));
+    });
+</script>
+{% endblock %}
+{% endblock %}
