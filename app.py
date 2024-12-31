@@ -49,7 +49,7 @@ video.start()
 face_recognizer = FaceRecognitionModel()
 attendance_tracker = AttendanceTracker("instance/attendance.db")
 tracker = Tracker(model='yolov8n.pt', db='instance/trackings.db')
-detection = ObjectDetectionModel(model_name='last', db_name='instance/detection')
+detection = ObjectDetectionModel(model_name='best', db_name='instance/detection')
 
 # Flag to stop processing thread gracefully
 processing_active = True
