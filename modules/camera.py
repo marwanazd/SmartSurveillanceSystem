@@ -5,13 +5,14 @@ import logging
 
 
 class CameraManager:
-    def __init__(self, source):
+    def __init__(self, source, rotate=True):
         """
         Initialize the CameraManager object.
 
         :param source: The video source (e.g., local camera index or URL).
         """
         self.source = source
+        self.rotate = rotate
         self.cap = None
         self.running:bool = False
         self.latest_frame = None
@@ -57,7 +58,8 @@ class CameraManager:
             if self.cap.isOpened():
                 success, frame = self.cap.read()
                 if success:
-                    frame = cv2.rotate(frame, cv2.ROTATE_180)
+                    if self.rotate:
+                        frame = cv2.rotate(frame, cv2.ROTATE_180)
                     with self.lock:
                         self.latest_frame = frame
                 else:

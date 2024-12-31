@@ -19,7 +19,7 @@ class DetectedObject(Base):
     class_id = Column(Integer)
     timestamp = Column(String)
     label = Column(String)
-    img_base64 = Column(LargeBinary)
+    img_base64 = Column(String, nullable=True)
 
 model_name = 'best'
 
@@ -41,7 +41,7 @@ class ObjectDetectionModel:
         return self.model(frame)  # Pass frame directly for predictions
     
     def detect_objects(self, frame, time_threshold_minutes=1):
-        # Time threshold in minutes (default 5 minutes)
+        # Time threshold in minutes
         time_threshold = timedelta(minutes=time_threshold_minutes)
         
         # Detect objects in the frame
@@ -54,29 +54,43 @@ class ObjectDetectionModel:
 
         # Iterate over detected objects
         for label, coordinate in zip(idd, coordinates):
-            print(f"Label: {label.item()}, Coordinates (xywh): {coordinate.tolist()}")
-            # Get bounding box coordinates and confidence
-            [x1, y1, x2, y2] = coordinate.tolist()
-
             # Convert coordinates to integers for correct slicing
+            [x1, y1, x2, y2] = coordinate.tolist()
             x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
 
+            # Ensure coordinates are within frame bounds
+            x1, y1 = max(0, x1), max(0, y1)
+            x2, y2 = min(frame.shape[1], x2), min(frame.shape[0], y2)
+
+            # Extract class ID and label name
             class_id = int(label.item())
             label_name = self.model.names[class_id]
             
-            # Skip the detection if the object is a 'person' (class_id 0 for person in YOLO)
-            if label_name == 'person':
+            # Skip detection if it's a 'person' (class_id 0 for person in YOLO)
+            clas_to_skip = ['person', 'face_mask', 'no_face_mask', 'incorrect_face_mask']
+            if label_name in clas_to_skip:
                 continue
 
-            # Check if the label was detected recently
+            # Query the database for the last detection of the same label
+            db_session = self.Session()
+            last_detected = (
+                db_session.query(DetectedObject)
+                .filter(DetectedObject.label == label_name)
+                .order_by(DetectedObject.timestamp.desc())
+                .first()
+            )
+
+            # Get current timestamp
             timestamp = datetime.now()
-            if label_name in self.last_detection_time and timestamp - self.last_detection_time[label_name] <= time_threshold:
-                continue  # Skip appending if within the threshold time
+
+            # Skip if the label was detected within the time threshold
+            if last_detected and timestamp - datetime.strptime(last_detected.timestamp, '%Y-%m-%d %H:%M:%S') <= time_threshold:
+                continue
 
             # Extract the object image from the bounding box
             object_img = frame[y1:y2, x1:x2]
             
-            # Check if the object image is not empty
+            # Skip if the extracted object image is empty
             if object_img.size == 0:
                 continue
             
@@ -84,43 +98,20 @@ class ObjectDetectionModel:
             _, buffer = cv2.imencode('.jpg', object_img)
             img_base64 = base64.b64encode(buffer).decode('utf-8')
 
-            # Prepare the data for the detected object
-            detected_obj = {
-                'id': class_id,
-                'label': label_name,
-                'timestamp': timestamp.strftime('%Y-%m-%d %H:%M:%S'),
-                'img_base64': img_base64
-            }
-            
-            # Append the detected object to the list
-            self.detected_objects.append(detected_obj)
-            
-            # Update the last detection time for the label
-            self.last_detection_time[label_name] = timestamp
-        
-        # Print the number of detected objects and return the list
-        print(f"Detected {len(self.detected_objects)} objects.")
-        return self.detected_objects
-
-    def save_to_db(self, detected_objects):
-        """
-        Save the list of detected objects to the database.
-        """
-        # Create a new database session
-        db_session = self.Session()
-
-        for obj in detected_objects:
+            # Create a new database entry
             detected_obj = DetectedObject(
-                class_id=obj['id'],
-                label=obj['label'],
-                timestamp=obj['timestamp'],
-                img_base64=base64.b64decode(obj['img_base64'])  # Store the base64 image as binary
+                class_id=class_id,
+                label=label_name,
+                timestamp=timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                img_base64=img_base64  # Store the base64 image as binary
             )
             db_session.add(detected_obj)
-        
-        # Commit the session to save the data
-        db_session.commit()
-        db_session.close()
+
+            # Commit the session to save the data
+            db_session.commit()
+            
+            # Close the database session
+            db_session.close()
 
     def load_from_db(self):
         """
@@ -139,7 +130,7 @@ class ObjectDetectionModel:
                 'id': obj.class_id,
                 'label': obj.label,
                 'timestamp': obj.timestamp,
-                'img_base64': base64.b64encode(obj.img_base64).decode('utf-8')  # Convert binary image back to base64
+                'img_base64': obj.img_base64  # Convert binary image back to base64
             }
             detected_objects.append(detected_obj)
 

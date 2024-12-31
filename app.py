@@ -42,7 +42,7 @@ with app.app_context():
     db.create_all()
 
 # Create a CameraManager object to handle the video source.
-video = CameraManager(source=0)
+video = CameraManager(source=0, rotate=False)
 video.start()
 
 # Initialize the face recognition model
@@ -77,7 +77,6 @@ def face_recognition_thread(frame):
 
 def object_detection_thread(frame):
     records = detection.detect_objects(frame=frame)
-    detection.save_to_db(detected_objects=records)
     return frame
 
 def tracking_thread(frame):
@@ -273,41 +272,48 @@ def add_person():
 
     return "Person added", 200
 
-@app.route('/api/evants', methods=['GET'])
+@app.route('/api/events', methods=['GET'])
 def get_events():
     """
     Endpoint to fetch events.
+    Combines object detection and attendance records, 
+    adds event types, sorts them by timestamp, and returns a unified response.
     """
-    attendance_records = attendance_tracker.get_attendance_records('all')
-    object_detction_records = detection.load_from_db()
+    try:
+        # Fetch records
+        attendance_records = attendance_tracker.get_attendance_records('all')
+        object_detection_records = detection.load_from_db()
 
-    # Add event type to the detected objects list
-    for obj in object_detction_records:
-        obj['eventtype'] = 'ObjectDetection'
+        # Add event type to each record
+        for obj in object_detection_records:
+            obj['eventtype'] = 'ObjectDetection'
 
-    # Add event type to the attendance records list
-    for record in attendance_records:
-        record['eventtype'] = 'Attendance'
+        for record in attendance_records:
+            record['eventtype'] = 'Attendance'
 
-    # Combine the two lists
-    evants = object_detction_records + attendance_records
+        # Combine and sort the records
+        events = object_detection_records + attendance_records
+        sorted_data = sorted(events, key=lambda x: datetime.fromisoformat(x['timestamp']), reverse=True)
 
-    # Sort the combined list by timestamp
-    evants.sort(key=lambda x: x['timestamp'])
+        # Prepare the final list with the required fields
+        total_events = [
+            {
+                'id': item['id'],
+                'eventtype': item['eventtype'],
+                'name': item.get('label', item.get('name')),  # Label for ObjectDetection, name for Attendance
+                'timestamp': item['timestamp'],
+                'img': item.get('img_base64', item.get('face_image'))  # img_base64 for ObjectDetection, face_image for Attendance
+            }
+            for item in sorted_data
+        ]
 
-    # Prepare the final list with the required fields: id, eventtype, name/label, timestamp, img
-    total_evants = [
-        {
-            'id': item['id'],
-            'eventtype': item['eventtype'],
-            'name': item.get('label', item.get('name')),  # Get label from ObjectDetection or name from Attendance
-            'timestamp': item['timestamp'],
-            'img': item.get('img_base64', item.get('face_image'))  # Get img from ObjectDetection or face_image from Attendance
-        }
-        for item in evants
-    ]
-    response = {'events': total_evants}
-    return jsonify(response)
+        # Build response
+        response = {'events': total_events}
+        return jsonify(response), 200
+    except Exception as e:
+        # Log the error and return a meaningful response
+        print(f"Error fetching events: {e}")
+        return jsonify({'error': 'Failed to fetch events'}), 500
 
 @app.route('/api/fabLab_statistics', methods=['GET'])
 def fabLab_statistics():

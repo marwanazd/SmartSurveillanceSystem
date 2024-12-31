@@ -15,7 +15,7 @@ class AttendanceRecord(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
-    timestamp = Column(DateTime, nullable=False)
+    timestamp = Column(String)
     face_image = Column(String, nullable=True)  # To store the face image as Base64
 
 class AttendanceTracker:

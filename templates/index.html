@@ -56,7 +56,7 @@
                                 </li>
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
                                     Time
-                                    <span id="camera-time">{{ metadata.time }}</span>
+                                    <span id="camera-time"></span>
                                 </li>
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
                                     Resolution
@@ -168,6 +168,21 @@
 
 {% block scripts %}
 <script>
+    function updateTime() {
+        const currentTime = new Date();
+        const hours = currentTime.getHours().toString().padStart(2, '0');
+        const minutes = currentTime.getMinutes().toString().padStart(2, '0');
+        const seconds = currentTime.getSeconds().toString().padStart(2, '0');
+        const timeString = `${hours}:${minutes}:${seconds}`;
+        
+        document.getElementById('camera-time').textContent = timeString;
+    }
+    // Update time every second
+    setInterval(updateTime, 1000);
+
+    // Set the initial time
+    updateTime();
+
     // Function to fetch FabLab statistics and update the page
     function fetchFabLabStatistics() {
         fetch('/api/fabLab_statistics')
@@ -182,30 +197,45 @@
             .catch(error => console.error('Error fetching FabLab statistics:', error));
     }
 
-    // Function to fetch event data and update the table
+    // Function to fetch and display events
     function fetchEvents() {
-        fetch('/api/evants')
-            .then(response => response.json())
+        fetch('/api/events')
+            .then(response => response.json()) // Parse the JSON response
             .then(data => {
                 const eventsList = document.getElementById('events-list');
-                eventsList.innerHTML = '';  // Clear the current list
+                eventsList.innerHTML = ''; // Clear the current list of events
 
+                // Loop through each event and create a table row
                 data.events.forEach(event => {
                     const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${event.id}</td>
-                        <td>${event.eventtype}</td>
-                        <td>${event.name}</td>
-                        <td>${new Date(event.timestamp).toLocaleString()}</td>
-                        <td>
-                            ${event.img ? `<img src="data:image/jpeg;base64,${event.img}" alt="Event Image" class="img-thumbnail" style="max-width: 100px;">` : 'No Image'}
-                        </td>
-                    `;
+                    
+                    // Create table cells and add event data
+                    const eventIdCell = document.createElement('td');
+                    eventIdCell.textContent = event.id;
+                    row.appendChild(eventIdCell);
+
+                    const eventTypeCell = document.createElement('td');
+                    eventTypeCell.textContent = event.eventtype;
+                    row.appendChild(eventTypeCell);
+
+                    const nameLabelCell = document.createElement('td');
+                    nameLabelCell.textContent = event.name || 'N/A'; // Assuming event has a "name" field
+                    row.appendChild(nameLabelCell);
+
+                    const timestampCell = document.createElement('td');
+                    timestampCell.textContent = new Date(event.timestamp).toLocaleString(); // Assuming "timestamp" is a valid date string
+                    row.appendChild(timestampCell);
+
+                    const imgCell = document.createElement('td');
+                    const imgElement = document.createElement('img');
+                    imgElement.src = 'data:image/jpeg;base64,' + event.img; // Assuming event.img is a base64-encoded image string
+                    imgElement.width = 100; // Set image width
+                    imgCell.appendChild(imgElement);
+                    row.appendChild(imgCell);
+
+                    // Append the row to the table body
                     eventsList.appendChild(row);
                 });
-
-                // Update the total events count
-                document.getElementById('total-events').textContent = data.events.length;
             })
             .catch(error => console.error('Error fetching events:', error));
     }
@@ -225,11 +255,15 @@
     // Fetch statistics and events when the page loads
     window.onload = function() {
         fetchFabLabStatistics();
+        // Fetch events every 5 seconds
+        setInterval(fetchEvents, 5000);
+
+        // Initial fetch on page load
         fetchEvents();
+
         fetchStorage();  // Fetch the storage data on page load
-        setInterval(fetchFabLabStatistics, 10000);  // Update statistics every 10 seconds
-        setInterval(fetchEvents, 30000);  // Update events every 30 seconds
-        setInterval(fetchStorage, 60000);  // Update storage data every 60 seconds
+        setInterval(fetchFabLabStatistics, 30000);  // Update statistics every 10 seconds
+        setInterval(fetchStorage, 20000);  // Update storage data every 60 seconds
     };
 </script>
 {% endblock %}
