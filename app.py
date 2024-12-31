@@ -89,6 +89,8 @@ def tracking_thread(frame):
 
 ######################### Continuously process video frames ######################
 
+# Declare anotated_frame globally
+
 def process_video_frames():
     """
     Continuously process video frames to detect faces and track attendance.
@@ -98,10 +100,9 @@ def process_video_frames():
     while processing_active:
         frame = video.get_frame()
         if frame is not None:
-            #frame = face_recognition_thread(frame)
-            frame = object_detection_thread(frame)
+            frame1 = face_recognition_thread(frame.copy())
+            frame2 = object_detection_thread(frame.copy())
             #frame = tracking_thread(frame)
-            pass
 
 ################################################################""
 

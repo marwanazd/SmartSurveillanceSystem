@@ -1,5 +1,5 @@
 import base64
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 import cv2
 import matplotlib.pyplot as plt
@@ -35,11 +35,15 @@ class ObjectDetectionModel:
         self.Session = sessionmaker(bind=self.engine)
         # Initialize a list to store the detected objects' data
         self.detected_objects = []
+        self.last_detection_time = {}
 
     def predict(self, frame):
         return self.model(frame)  # Pass frame directly for predictions
     
-    def detect_objects(self, frame):
+    def detect_objects(self, frame, time_threshold_minutes=1):
+        # Time threshold in minutes (default 5 minutes)
+        time_threshold = timedelta(minutes=time_threshold_minutes)
+        
         # Detect objects in the frame
         results = self.predict(frame)
 
@@ -48,7 +52,7 @@ class ObjectDetectionModel:
         idd = boxes.cls  # Class labels (IDs)
         coordinates = boxes.xywh  # Coordinates in xywh format (center_x, center_y, width, height)
 
-        # Iterate over detected objects and print labels and coordinates
+        # Iterate over detected objects
         for label, coordinate in zip(idd, coordinates):
             print(f"Label: {label.item()}, Coordinates (xywh): {coordinate.tolist()}")
             # Get bounding box coordinates and confidence
@@ -63,10 +67,12 @@ class ObjectDetectionModel:
             # Skip the detection if the object is a 'person' (class_id 0 for person in YOLO)
             if label_name == 'person':
                 continue
-        
-            # Extract the class label
-            label = self.model.names[int(class_id)]
-            
+
+            # Check if the label was detected recently
+            timestamp = datetime.now()
+            if label_name in self.last_detection_time and timestamp - self.last_detection_time[label_name] <= time_threshold:
+                continue  # Skip appending if within the threshold time
+
             # Extract the object image from the bounding box
             object_img = frame[y1:y2, x1:x2]
             
@@ -78,18 +84,19 @@ class ObjectDetectionModel:
             _, buffer = cv2.imencode('.jpg', object_img)
             img_base64 = base64.b64encode(buffer).decode('utf-8')
 
-            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            
             # Prepare the data for the detected object
             detected_obj = {
                 'id': class_id,
-                'label': label,
-                'timestamp': timestamp,
+                'label': label_name,
+                'timestamp': timestamp.strftime('%Y-%m-%d %H:%M:%S'),
                 'img_base64': img_base64
             }
             
             # Append the detected object to the list
             self.detected_objects.append(detected_obj)
+            
+            # Update the last detection time for the label
+            self.last_detection_time[label_name] = timestamp
         
         # Print the number of detected objects and return the list
         print(f"Detected {len(self.detected_objects)} objects.")

@@ -49,6 +49,8 @@ Install required packages:
 
 ```bash
 pip install Flask Flask-SQLAlchemy face-recognition ultralytics supervision imutils
+
+pip install face-recognition
 ```
 
 ## Dependencies List

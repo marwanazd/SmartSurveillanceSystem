@@ -60,7 +60,8 @@ class AttendanceTracker:
             for face in recognized_faces:
                 name = face.get("name")
                 face_image = face.get("face_base64")
-                current_time = datetime.now()
+                current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                current_time = datetime.strptime(current_time, '%Y-%m-%d %H:%M:%S')
 
                 # Check if an entry for this name already exists for today
                 existing_record = session.query(AttendanceRecord).filter(
