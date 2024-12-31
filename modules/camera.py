@@ -57,6 +57,7 @@ class CameraManager:
             if self.cap.isOpened():
                 success, frame = self.cap.read()
                 if success:
+                    frame = cv2.rotate(frame, cv2.ROTATE_180)
                     with self.lock:
                         self.latest_frame = frame
                 else:
