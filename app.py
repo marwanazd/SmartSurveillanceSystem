@@ -42,7 +42,7 @@ with app.app_context():
     db.create_all()
 
 # Create a CameraManager object to handle the video source.
-video = CameraManager(source=0, rotate=False)
+video = CameraManager(source=0, rotate=True)
 video.start()
 
 # Initialize the face recognition model
