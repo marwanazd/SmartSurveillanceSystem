@@ -29,7 +29,7 @@ class ObjectDetectionModel:
     excluding 'person' objects.
     """
     def __init__(self, model_names: list, db_name: str):
-        self.models = [YOLO(f'models/{model}.pt') for model in model_names]
+        self.models = [YOLO(f'models/{model}.onnx') for model in model_names]
         self.engine = create_engine(f'sqlite:///{db_name}.db')
         Base.metadata.create_all(self.engine)
         self.Session = sessionmaker(bind=self.engine)
