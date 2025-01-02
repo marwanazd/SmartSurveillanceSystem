@@ -21,7 +21,6 @@
                                     <i class="bi bi-three-dots-vertical"></i>
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end">
-                                    <li><a class="dropdown-item" href="/camera/toggle">Turn Camera On/Off</a></li>
                                     <li><a class="dropdown-item" href="javascript:void(0)" onclick="toggleFullScreen()">Full Screen</a></li>
                                 </ul>
                             </div>
@@ -168,6 +167,20 @@
 
 {% block scripts %}
 <script>
+    // Function to toggle full screen
+    function toggleFullScreen() {
+            var videoElement = document.getElementById("video-feed-1");
+            if (!document.fullscreenElement) {
+                videoElement.requestFullscreen().catch(err => {
+                    console.log("Error attempting to enable full-screen mode: ", err);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
     function updateTime() {
         const currentTime = new Date();
         const hours = currentTime.getHours().toString().padStart(2, '0');
@@ -177,11 +190,6 @@
         
         document.getElementById('camera-time').textContent = timeString;
     }
-    // Update time every second
-    setInterval(updateTime, 1000);
-
-    // Set the initial time
-    updateTime();
 
     // Function to fetch FabLab statistics and update the page
     function fetchFabLabStatistics() {
@@ -229,7 +237,8 @@
                     const imgCell = document.createElement('td');
                     const imgElement = document.createElement('img');
                     imgElement.src = 'data:image/jpeg;base64,' + event.img; // Assuming event.img is a base64-encoded image string
-                    imgElement.width = 100; // Set image width
+                    imgElement.width = 150; // Set image width
+                    imgElement.height = 150; // Set image height
                     imgCell.appendChild(imgElement);
                     row.appendChild(imgCell);
 
@@ -252,16 +261,34 @@
             .catch(error => console.error('Error fetching storage data:', error));
     }
 
+    // Function to fetch total events from the API and update the DOM
+    async function fetchTotalEvents() {
+        try {
+            const response = await fetch('/api/totalEvants');
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+
+            const data = await response.json(); // Assuming the API returns a JSON object
+            const totalEvents = data.total_events; // Adjust key based on your Flask API response structure
+
+            // Update the DOM element with the fetched value
+            document.getElementById('total-events').textContent = totalEvents;
+        } catch (error) {
+            console.error('Error fetching total events:', error);
+        }
+    }
+
     // Fetch statistics and events when the page loads
     window.onload = function() {
-        fetchFabLabStatistics();
-        // Fetch events every 5 seconds
-        setInterval(fetchEvents, 5000);
-
-        // Initial fetch on page load
-        fetchEvents();
-
+        updateTime(); // Update the time on page load
+        fetchFabLabStatistics(); // Fetch FabLab statistics on page load
+        fetchEvents(); // Fetch events on page load
         fetchStorage();  // Fetch the storage data on page load
+        fetchTotalEvents();
+        setInterval(fetchTotalEvents, 5000);
+        setInterval(updateTime, 1000); // Update the time every second
+        setInterval(fetchEvents, 2000); // Update events every 5 seconds
         setInterval(fetchFabLabStatistics, 30000);  // Update statistics every 10 seconds
         setInterval(fetchStorage, 20000);  // Update storage data every 60 seconds
     };

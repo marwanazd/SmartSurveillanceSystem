@@ -42,14 +42,17 @@ with app.app_context():
     db.create_all()
 
 # Create a CameraManager object to handle the video source.
-video = CameraManager(source=0, rotate=True)
+video = CameraManager(source=0, rotate=False)
 video.start()
 
 # Initialize the face recognition model
 face_recognizer = FaceRecognitionModel()
 attendance_tracker = AttendanceTracker("instance/attendance.db")
 tracker = Tracker(model='yolov8n.pt', db='instance/trackings.db')
-detection = ObjectDetectionModel(model_name='best', db_name='instance/detection')
+detection = ObjectDetectionModel(
+    model_names=['best', 'fireModel', 'knive'],
+    db_name='instance/detection'
+    )
 
 # Flag to stop processing thread gracefully
 processing_active = True
@@ -76,7 +79,7 @@ def face_recognition_thread(frame):
     return frame
 
 def object_detection_thread(frame):
-    records = detection.detect_objects(frame=frame)
+    detection.detect_objects(frame=frame, confidence=0.65)
     return frame
 
 def tracking_thread(frame):
@@ -280,6 +283,7 @@ def get_events():
     adds event types, sorts them by timestamp, and returns a unified response.
     """
     try:
+        global total_events
         # Fetch records
         attendance_records = attendance_tracker.get_attendance_records('all')
         object_detection_records = detection.load_from_db()
@@ -298,13 +302,13 @@ def get_events():
         # Prepare the final list with the required fields
         total_events = [
             {
-                'id': item['id'],
+                'id': i,
                 'eventtype': item['eventtype'],
                 'name': item.get('label', item.get('name')),  # Label for ObjectDetection, name for Attendance
                 'timestamp': item['timestamp'],
                 'img': item.get('img_base64', item.get('face_image'))  # img_base64 for ObjectDetection, face_image for Attendance
             }
-            for item in sorted_data
+            for i, item in enumerate(sorted_data)
         ]
 
         # Build response
@@ -377,6 +381,17 @@ def object_detected():
     """
     object_detected = attendance_tracker.get_object_detected()
     response = {'object_detected': object_detected}
+    return jsonify(response)
+
+@app.route('/api/totalEvants', methods=['GET'])
+def get_total_events():
+    if total_events is None:
+        total = 0
+    else:
+        total = len(total_events)
+    response = {
+        "total_events": total  # Key name should match your frontend's expectation
+    }
     return jsonify(response)
 
 @app.route('/drow')
