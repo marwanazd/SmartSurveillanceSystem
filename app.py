@@ -104,19 +104,17 @@ def gen():
     while processing_active:
         frame = video.get_frame()
         if frame is not None:
-            img = frame.copy()
-
             # Detect objects in the frame
             frame = detection.detect_objects(frame=frame, confidence=0.7)
 
             # Get the detected faces
-            detected_faces = face_recognizer.detect(frame)
+            #detected_faces = face_recognizer.detect(frame)
             
             # Update attendance (and show names on the frame)
-            attendance_tracker.record_attendance(detected_faces)
+            #attendance_tracker.record_attendance(detected_faces)
             
             # Plot the attendance on the frame
-            frame = face_recognizer.plot(frame, detected_faces)
+            #frame = face_recognizer.plot(frame, detected_faces)
             
             # Convert the frame to JPEG and yield as response for streaming
             ret, jpeg = cv2.imencode('.jpg', frame)
