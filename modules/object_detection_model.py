@@ -29,7 +29,7 @@ class ObjectDetectionModel:
     excluding 'person' objects.
     """
     def __init__(self, model_names: list, db_name: str):
-        self.models = [YOLO(f'models/{model}.onnx') for model in model_names]
+        self.models = [YOLO(f'models/{model}.pt') for model in model_names]
         self.engine = create_engine(f'sqlite:///{db_name}.db')
         Base.metadata.create_all(self.engine)
         self.Session = sessionmaker(bind=self.engine)
@@ -64,14 +64,14 @@ class ObjectDetectionModel:
                 label = model.names[class_id]
                 title = f"{model.names[class_id]} {confidence:.2f}"  # Use model.names for class name
 
+                # Skip detection if it's a 'person' (class_id 0 for person in YOLO)
+                clas_to_skip = ['person', 'face_mask', 'no_face_mask', 'incorrect_face_mask', 'violence', 'guns' , 'cigarette']
+                if label in clas_to_skip:
+                    continue
+
                 # Draw the bounding box and label
                 cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
                 cv2.putText(frame, title, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-
-                # Skip detection if it's a 'person' (class_id 0 for person in YOLO)
-                clas_to_skip = ['person', 'face_mask', 'no_face_mask', 'incorrect_face_mask', 'violence']
-                if label in clas_to_skip:
-                    continue
 
                 # Query the database for the last detection of the same label
                 db_session = self.Session()
@@ -114,6 +114,8 @@ class ObjectDetectionModel:
                 
                 # Close the database session
                 db_session.close()
+
+        return frame
 
     def load_from_db(self):
         """

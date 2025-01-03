@@ -1,0 +1,51 @@
+INFO:sqlalchemy.engine.Engine:BEGIN (implicit)
+INFO:sqlalchemy.engine.Engine:PRAGMA main.table_info("attendance")
+INFO:sqlalchemy.engine.Engine:[raw sql] ()
+INFO:sqlalchemy.engine.Engine:PRAGMA temp.table_info("attendance")
+INFO:sqlalchemy.engine.Engine:[raw sql] ()
+INFO:sqlalchemy.engine.Engine:PRAGMA main.table_info("person")
+INFO:sqlalchemy.engine.Engine:[raw sql] ()
+INFO:sqlalchemy.engine.Engine:PRAGMA temp.table_info("person")
+INFO:sqlalchemy.engine.Engine:[raw sql] ()
+INFO:sqlalchemy.engine.Engine:PRAGMA main.table_info("encoding")
+INFO:sqlalchemy.engine.Engine:[raw sql] ()
+INFO:sqlalchemy.engine.Engine:PRAGMA temp.table_info("encoding")
+INFO:sqlalchemy.engine.Engine:[raw sql] ()
+INFO:sqlalchemy.engine.Engine:
+CREATE TABLE attendance (
+	id INTEGER NOT NULL, 
+	name VARCHAR NOT NULL, 
+	timestamp DATETIME, 
+	PRIMARY KEY (id)
+)
+
+
+INFO:sqlalchemy.engine.Engine:[no key 0.00242s] ()
+INFO:sqlalchemy.engine.Engine:
+CREATE TABLE person (
+	id INTEGER NOT NULL, 
+	name VARCHAR NOT NULL, 
+	PRIMARY KEY (id)
+)
+
+
+INFO:sqlalchemy.engine.Engine:[no key 0.00230s] ()
+INFO:sqlalchemy.engine.Engine:
+CREATE TABLE encoding (
+	id INTEGER NOT NULL, 
+	person_id INTEGER, 
+	encoding BLOB NOT NULL, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(person_id) REFERENCES person (id)
+)
+
+
+INFO:sqlalchemy.engine.Engine:[no key 0.00260s] ()
+INFO:sqlalchemy.engine.Engine:COMMIT
+INFO:root:Opening video source: 0
+INFO:root:CameraManager background thread started.
+INFO:werkzeug:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5010
+ * Running on http://192.168.9.30:5010
+INFO:werkzeug:[33mPress CTRL+C to quit[0m

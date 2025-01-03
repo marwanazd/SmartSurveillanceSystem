@@ -42,71 +42,32 @@ with app.app_context():
     db.create_all()
 
 # Create a CameraManager object to handle the video source.
-video = CameraManager(source=0, rotate=True)
-video.start()
+video = CameraManager(source=0, rotate=False)
+
+def satrt_video():
+    video.start()
 
 # Initialize the face recognition model
 face_recognizer = FaceRecognitionModel()
+
+# Initialize the attendance tracker
 attendance_tracker = AttendanceTracker("instance/attendance.db")
-tracker = Tracker(model='yolov8n.pt', db='instance/trackings.db')
+if os.path.exists(FACE_RECOGNITION_MODEL):
+    #print("Face recognition database found. Loading model...")
+    face_recognizer.load(FACE_RECOGNITION_MODEL)
+
+# Initialize the object detection model
 detection = ObjectDetectionModel(
-    model_names=['best', 'fireModel', 'knive'],
+    model_names=['fireModel', 'knive', 'best'],
     db_name='instance/detection'
     )
+
+# Initialize the tracker model
+tracker = Tracker(db='instance/trackings.db')
 
 # Flag to stop processing thread gracefully
 processing_active = True
 
-def face_recognition_thread(frame):
-    #print("Processing a new frame...")
-    if os.path.exists(FACE_RECOGNITION_MODEL):
-        #print("Face recognition database found. Loading model...")
-        face_recognizer.load(FACE_RECOGNITION_MODEL)
-    else:
-        #print("Face recognition database not found.")
-        pass
-
-    if face_recognizer.weights_exist:
-        #print("Face recognition model weights loaded. Detecting faces...")
-        recognized_faces = face_recognizer.detect(frame)
-        #print(f"Recognized faces: {recognized_faces}")
-        attendance_tracker.record_attendance(recognized_faces)
-        #print("Attendance recorded.")
-    else:
-        #print("Face recognition model weights not found.")
-        pass
-    
-    return frame
-
-def object_detection_thread(frame):
-    detection.detect_objects(frame=frame, confidence=0.65)
-    return frame
-
-def tracking_thread(frame):
-    # Process the frame to detect and track people
-    frame = tracker.process_frame(frame, selected_classes=[0], track_movements_flag=True)
-    # Count crossings for the given line
-    frame = tracker.count_crossings(frame, line_id=1, line_direction='horizontal', drawing_db='drawings.db', db_model=Drawing)
-    return frame
-
-######################### Continuously process video frames ######################
-
-# Declare anotated_frame globally
-
-def process_video_frames():
-    """
-    Continuously process video frames to detect faces and track attendance.
-    """
-    global processing_active
-
-    while processing_active:
-        frame = video.get_frame()
-        if frame is not None:
-            frame1 = face_recognition_thread(frame.copy())
-            frame2 = object_detection_thread(frame.copy())
-            #frame = tracking_thread(frame)
-
-################################################################""
 
 # Dummy training function
 def train_model(name, folder_path):
@@ -135,27 +96,41 @@ def get_folder_size(folder_path):
     return total_size
 
 # Start the processing thread
-processing_thread = threading.Thread(target=process_video_frames, daemon=True)
+processing_thread = threading.Thread(target=satrt_video, daemon=True)
 processing_thread.start()
+
+def gen():
+    """Generate frames for the real-time video stream."""
+    while processing_active:
+        frame = video.get_frame()
+        if frame is not None:
+            img = frame.copy()
+
+            # Detect objects in the frame
+            frame = detection.detect_objects(frame=frame, confidence=0.7)
+
+            # Get the detected faces
+            detected_faces = face_recognizer.detect(frame)
+            
+            # Update attendance (and show names on the frame)
+            attendance_tracker.record_attendance(detected_faces)
+            
+            # Plot the attendance on the frame
+            frame = face_recognizer.plot(frame, detected_faces)
+            
+            # Convert the frame to JPEG and yield as response for streaming
+            ret, jpeg = cv2.imencode('.jpg', frame)
+            if ret:
+                # Yield the frame to be displayed in the browser
+                frame_bytes = jpeg.tobytes()
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n\r\n')
 
 @app.route('/video_feed')
 def video_feed():
-    """
-    Flask route to stream the video feed.
-    """
-    def generate_stream():
-        while True:
-            frame = video.get_frame()
-            if frame is not None:
-                # Encode the frame as JPEG
-                ret, jpeg = cv2.imencode('.jpg', frame)
-                if ret:
-                    yield (b'--frame\r\n'
-                           b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n\r\n')
-                else:
-                    logging.error("Failed to encode frame as JPEG.")
-
-    return Response(generate_stream(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    """Video feed route."""
+    return Response(gen(),
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
 
 # PAGES
 
@@ -466,7 +441,7 @@ def remove_drawing():
 
 if __name__ == '__main__':
     try:
-        app.run(host='0.0.0.0', port=5010, debug=False)
+        app.run(host='0.0.0.0', port=5000, debug=False)
     finally:
         # Stop processing thread gracefully when the application exits
         processing_active = False
